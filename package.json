@@ -1,0 +1,53 @@
+{
+  "name": "omavy-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node --require tsconfig-paths/register src/server.ts",
+    "dev": "nodemon --watch src --ext ts,json --exec ts-node --require tsconfig-paths/register src/server.ts",
+    "build": "tsc",
+    "migrate": "npx knex migrate:latest --knexfile knexfile.js",
+    "migrate:rollback": "npx knex migrate:rollback --knexfile knexfile.js",
+    "migrate:make": "npx knex migrate:make --knexfile knexfile.js",
+    "seed": "npx knex seed:run --knexfile knexfile.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "helmet": "^8.1.0",
+    "joi": "^18.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.1.0",
+    "pg": "^8.16.3",
+    "redis": "^4.7.1",
+    "resend": "^6.0.1",
+    "swagger-jsdoc": "^3.7.0",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/express-session": "^1.18.2",
+    "@types/helmet": "^0.0.48",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.2.1",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@types/uuid": "^10.0.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.2"
+  }
+}
