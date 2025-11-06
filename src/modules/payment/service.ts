@@ -5,6 +5,8 @@ import { PaymentModel } from "./model";
 import { AuthModel } from "../admin auth/model";
 import { PaymentRequest, PaymentVerification, PaymentResponse } from "./interface";
 import { errors } from '../../middlewares/error';
+import { CartService } from "../cart/service";
+import { OrderService } from "../order/service";
 
 
 dotenv.config();
@@ -12,6 +14,8 @@ dotenv.config();
 export class PaymentService {
   constructor(private model: PaymentModel) {}
   private AuthModel = new AuthModel();
+  private cartService = new CartService();
+  private OrderService = new OrderService();
 
   // Initialize payment
   async service_initializePayment(data: PaymentRequest): Promise<PaymentResponse> {
@@ -23,10 +27,14 @@ export class PaymentService {
       throw errors.NOT_FOUND;
     }
 
+    const finalTotal = await this.cartService.service_calculateFinalTotal(
+      data.cartId,       // user's cart ID
+      data.deliveryId  // delivery fee selected
+    );
     // Create pending record in DB
     await this.model.createPayment({
       user_id: data.userId,
-      amount: data.amount,
+      amount: finalTotal,
       provider,
       payment_reference: reference,
       status: "pending",
@@ -169,6 +177,15 @@ export class PaymentService {
           "success",
           new Date(verificationData.paid_at)
         );
+        await this.OrderService.service_createOrderAfterPaymentVerification(
+          data.userId,             // userId
+          data.payment_reference,   // paymentReference
+          data.deliveryFeeId,     // deliveryFeeId
+          data.deliveryAddress,    // deliveryAddress
+          data.city                 // city
+        );
+
+
       } else {
         await this.model.updatePaymentStatus(data.payment_reference, "failed");
       }
@@ -204,6 +221,15 @@ export class PaymentService {
           "success",
           new Date(verificationData.created_at || new Date())
         );
+
+         await this.OrderService.service_createOrderAfterPaymentVerification(
+          data.userId,             // userId
+          data.payment_reference,   // paymentReference
+          data.deliveryFeeId,     // deliveryFeeId
+          data.deliveryAddress,    // deliveryAddress
+          data.city                 // city
+        );
+        
       } else {
         await this.model.updatePaymentStatus(data.payment_reference, "failed");
       }

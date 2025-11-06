@@ -6,16 +6,19 @@ export class CartModel {
   constructor(public db: Knex = knex) {} // default db instance
 
     //////////////////// Create a new Cart/////////////////
-    async model_createCart(cart: UpdateCarts): Promise<NewCarts> {
-      const [newCart] = await this.db<NewCarts>('carts')
+    async model_createCart(cart: UpdateCarts, trx?: Knex.Transaction): Promise<NewCarts> {
+        const query = trx || this.db;
+
+      const [newCart] = await query<NewCarts>('carts')
         .insert(cart)
         .returning('*');
       return newCart;
     }  
     
     // read cart data
-    async model_getCartByUserId(userId: string): Promise<NewCarts | null> {
-      const cart = await this.db<NewCarts>('carts')
+    async model_getCartByUserId(userId: string, trx?: Knex.Transaction): Promise<NewCarts | null> {
+      const query = trx || this.db;
+      const cart = await query<NewCarts>('carts')
         .where({ user_id: userId })
         .first();
       return cart || null;
@@ -23,30 +26,33 @@ export class CartModel {
 
     ///////////////////read cart data by id//////////////////
 
-    async model_getAllCarts(): Promise<NewCarts[]> {
-      return this.db<NewCarts>('carts').select('*');
+    async model_getAllCarts(trx?: Knex.Transaction): Promise<NewCarts[]> {
+      const query = trx || this.db;
+      return query<NewCarts>('carts').select('*');
     }
 
   ////////////////////////// delete cart ////////////////////////
 
-  async model_deleteCartById(userId: string): Promise<boolean> {
-    const rowsAffected = await this.db<NewCarts>('carts')
-      .where({ user_id: userId })
-      .del();
+    async model_deleteCartById(userId: string, trx?: Knex.Transaction): Promise<boolean> {
+      const query = trx || this.db;
+      const rowsAffected = await query<NewCarts>('carts')
+        .where({ user_id: userId })
+        .del();
 
-    return rowsAffected > 0;
-  }
- ///////////////////////// calculate cart total ////////////////////////
+      return rowsAffected > 0;
+    }
+  ///////////////////////// calculate cart total ////////////////////////
 
- async model_calculateCartTotal(cartId: string): Promise<number> {
-  const result = await this.db('cart_items')
-    .where({ cart_id: cartId })
-    .sum<{ total: string | number }>('subtotal as total')
-    .first();
+    async model_calculateCartTotal(cartId: string, trx?: Knex.Transaction): Promise<number> {
+      const query = trx || this.db;
+      const result = await query('cart_items')
+        .where({ cart_id: cartId })
+        .sum<{ total: string | number }>('subtotal as total')
+        .first();
 
-  const total = Number(result?.total) || 0;
-  return total;
-}
+      const total = Number(result?.total) || 0;
+      return total;
+    }
 }
 
 export class CartItemModel {
@@ -56,7 +62,8 @@ export class CartItemModel {
 
     //////////////////// Create a new Cart Item/////////////////
 
-    async model_createCartItem(cartItem: UpdateCart_Item): Promise<NewCart_Item> {
+    async model_createCartItem(cartItem: UpdateCart_Item, trx?: Knex.Transaction): Promise<NewCart_Item> {
+      const query = trx || this.db; 
       const { price, quantity } = cartItem;
 
       // Calculate subtotal safely (ensure both values exist and are numeric)
@@ -67,7 +74,7 @@ export class CartItemModel {
         ...cartItem,
         subtotal, // store the computed subtotal
       };
-      const [newCartItem] = await this.db<NewCart_Item>('cart_items')
+      const [newCartItem] = await query<NewCart_Item>('cart_items')
         .insert(cartItemData)
         .returning('*');
       return newCartItem;
@@ -75,45 +82,58 @@ export class CartItemModel {
 
     ///////////////////read cart item data by id//////////////////
 
-    async model_getCartItemById(id: string): Promise<NewCart_Item | null> {
-      const cartItem = await this.db<NewCart_Item>('cart_items')
+    async model_getCartItemById(id: string, trx?: Knex.Transaction): Promise<NewCart_Item | null> {
+      const query = trx || this.db;
+      const cartItem = await query<NewCart_Item>('cart_items')
         .where({ id })
         .first();
       return cartItem || null;
     }   
 
-    async model_getAllCartItems(): Promise<NewCart_Item[]> {
-      return this.db<NewCart_Item>('cart_items').select('*');
+    async model_getAllCartItems(trx?: Knex.Transaction): Promise<NewCart_Item[]> {
+      const query = trx || this.db;
+      return query<NewCart_Item>('cart_items').select('*');
     } 
 
-    async model_getCartItemsByCartId(cartId: string): Promise<NewCart_Item[]> {
-      return this.db<NewCart_Item>('cart_items')
+    async model_getCartItemsByCartId(cartId: string, trx?: Knex.Transaction): Promise<NewCart_Item[]> {
+      const query = trx || this.db;
+      return query<NewCart_Item>('cart_items')
         .where({ cart_id: cartId })
         .select('*');
     }
 
     ///////////////////////// delete cart item ////////////////////////
 
-    async model_deleteCartItemById(id: string): Promise<boolean> {
-      const rowsAffected = await this.db<NewCart_Item>('cart_items')
-        .where({ id })  
+    async model_deleteCartItemById(id: string, trx?: Knex.Transaction): Promise<boolean> {
+      const query = trx || this.db;
+      const rowsAffected = await query<NewCart_Item>('cart_items')
+        .where({ id })
         .del();
 
     return rowsAffected > 0;
   }
 
-  async model_deleteCartItemsByCartId(cartId: string): Promise<boolean> {
-    const rowsAffected = await this.db<NewCart_Item>('cart_items')
-      .where({ cart_id: cartId })  
-      .del(); 
+    async model_deleteCartItemsByCartId(cartId: string, trx?: Knex.Transaction): Promise<boolean> {
+      const query = trx || this.db;
+      const rowsAffected = await query<NewCart_Item>('cart_items')
+        .where({ cart_id: cartId })
+        .del();
 
-    return rowsAffected > 0;
-  }
+      return rowsAffected > 0;
+    }
+
+    async model_clearCart(cartId: string, trx?: Knex.Transaction): Promise<void> {
+      const query = trx || this.db; 
+      await query('cart_items')
+        .where({ cart_id: cartId })
+        .del();
+    }
 
   /////////////////update cart item quantity ///////////////////////
 
-  async model_updateCartItemQuantity(cart_item_id: string, quantity: number, subtotal: number): Promise<NewCart_Item | null> {
-    const [updatedCartItem] = await this.db<NewCart_Item>('cart_items')
+  async model_updateCartItemQuantity(cart_item_id: string, quantity: number, subtotal: number, trx?: Knex.Transaction): Promise<NewCart_Item | null> {
+    const query = trx || this.db;
+    const [updatedCartItem] = await query<NewCart_Item>('cart_items')
       .where({ id: cart_item_id })
       .update({ quantity, subtotal })
       .returning('*');

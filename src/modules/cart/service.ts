@@ -1,5 +1,6 @@
 import { CartModel, CartItemModel } from './model';
 import { AuthModel } from '../admin auth/model';
+import { DeliveryFeeModel } from '../delivery fee/model';
 import { NewCarts, UpdateCarts, NewCart_Item, UpdateCart_Item, AddItemResponse } from './interface';
 import { errors } from '../../middlewares/error';
 import redisClient from '../../config/redisClient'; 
@@ -11,7 +12,8 @@ export class CartService {
   constructor(
     public cartModel: CartModel = new CartModel(),
     public cartItemModel: CartItemModel = new CartItemModel(),
-    public authModel: AuthModel = new AuthModel()
+    public authModel: AuthModel = new AuthModel(),
+    public deliveryFeeModel: DeliveryFeeModel = new DeliveryFeeModel(),
   ) {} // default model instance
 
 
@@ -316,5 +318,30 @@ async service_updateCartItem(
     data.subtotal
   );
 }
+
+
+///////////////////// calculate final total with delivery fee ///////////////////////
+
+async service_calculateFinalTotal(cartId: string, deliveryFeeId: string): Promise<number> {
+  // 1️⃣ Get total cost of items in the cart
+  const cartTotal = await this.cartModel.model_calculateCartTotal(cartId);
+  if (cartTotal === null) {
+    throw new Error("Cart not found or total could not be calculated");
+  }
+
+  // 2️⃣ Get delivery fee from model
+  const deliveryFee = await this.deliveryFeeModel. model_getDeliveryFeeById(deliveryFeeId);
+  if (deliveryFee === null) {
+    throw new Error("Invalid delivery fee ID");
+  }
+
+  const finalDeliveryFeeAmount = Number(deliveryFee.fee);
+ 
+  // 3️⃣ Combine both totals
+  const finalTotal = Number(cartTotal) + finalDeliveryFeeAmount;
+
+  return finalTotal;
+}
+
 
 }

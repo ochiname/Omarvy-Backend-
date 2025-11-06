@@ -1,143 +1,190 @@
-import { CartService } from "./service";
+import { OrderService } from "./service";
 import { Request, Response, NextFunction } from "express";
-import { NewCarts, UpdateCarts, NewCart_Item, UpdateCart_Item, AddItemResponse} from "./interface";
 import { AuthenticatedRequest } from "../../middlewares/jwt_aunthenticator";
 
 
-export class CartController {
-  private service: CartService; 
+export class OrderController {
+  private service: OrderService ; 
 
   constructor() {
-    this.service = new CartService();
+    this.service = new OrderService ();
   }
 
-  async controller_addItemToCart(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      const userId = req.authUser?.id ? String(req.authUser.id) : null; // ✅ Logged-in user or null
-      const sessionId = req.sessionID; // ✅ Comes from express-session middleware
+//  async controller_createOrderAfterVerification(
+//   req: AuthenticatedRequest,
+//   res: Response,
+//   next: NextFunction
+// ): Promise<void> {
+//   try {
+//     const userId = req.authUser?.id ? String(req.authUser.id) : null;
+//     if (!userId) {
+//       res.status(401).json({ message: "Unauthorized: user not logged in" });
+//       return;
+//     }
 
-      const cartItem: UpdateCart_Item = req.body;
+//     // ✅ Extract data from request body
+//     const { 
+//       payment_reference, 
+//       delivery_fee_id, 
+//       delivery_address, 
+//       city 
+//     } = req.body;
 
-      const result = await this.service.service_addItemToCart(
-        userId,
-        sessionId,
-        cartItem
-      );
+//     if (!payment_reference || !delivery_fee_id || !delivery_address || !city) {
+//       res.status(400).json({ 
+//         message: "Missing required fields: payment_reference, delivery_fee_id, delivery_address, or city." 
+//       });
+//       return;
+//     }
 
-      res.status(201).json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
+//     // ✅ Call the service to create order after verification
+//     const result = await this.service.service_createOrderAfterPaymentVerification(
+//       userId,
+//       payment_reference,
+//       delivery_fee_id,
+//       delivery_address,
+//       city
+//     );
 
-  async controller_mergeGuestCart(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      const userId = String(req.authUser?.id || "");
-      const sessionId = req.sessionID;
+//     res.status(201).json(result);
+//   } catch (error) {
+//     next(error);
+//   }
+// }
 
-      if (!userId) {
-        res.status(401).json({ message: "User not authenticated" });
-        return; // ✅ Important to return
-      }
 
-      const result = await this.service.service_mergeGuestCart(sessionId, userId);
-
-      res.status(200).json(result); // ✅ returning Response is fine, TypeScript ignores
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async controller_getCartByUserId(
-      req: AuthenticatedRequest,
-      res: Response,  
-      next: NextFunction
-    ): Promise<void> {
-      try {
-        const userId = String(req.authUser?.id || "");
-
-        if (!userId) {
-          res.status(401).json({ message: "User not authenticated" });
-          return; // ✅ Important to return
-        }
-
-        const result = await this.service.service_getCartByUserId(userId);
-
-        res.status(200).json(result); // ✅ returning Response is fine, TypeScript ignores
-      } catch (error) {
-        next(error);
-      } 
-    }
-
-  async controller_getAllCarts(
-    req: Request,
-    res: Response,  
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      const result = await this.service.service_getAllCarts();
-      res.status(200).json(result); 
-    } catch (error) {
-      next(error);
-    }   
-
-  }
-
-  async controller_deleteCartByUserId(
-    req: AuthenticatedRequest,
-    res: Response,  
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      const userId = String(req.authUser?.id || "");  
-
-      if (!userId) {
-        res.status(401).json({ message: "User not authenticated" });
-        return; // ✅ Important to return
-      }
-
-      const result = await this.service.service_deleteCartByUserId(userId);
-
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-    }
-
-  async controller_updateCartItem(
+  async controller_getUserOrdersWithItems(
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
       const userId = String(req.authUser?.id || "");
-      // const sessionId = req.sessionID;  
-      const cartItem: UpdateCart_Item = req.body;
-      const cartItemId = req.params.id;
-
       if (!userId) {
-        res.status(401).json({ message: "User not authenticated" });
-        return; // ✅ Important to return
-      } 
+        res.status(401).json({ message: "Unauthorized: user not logged in" });
+        return;
+      }
 
-      const result = await this.service.service_updateCartItem(
-        cartItemId,
-        cartItem
-      );
+      const result = await this.service.service_getUserOrdersWithItems(userId);
 
-      res.status(200).json(result);
+      res.status(200).json({
+        message: "Orders retrieved successfully",
+        orders: result,
+      });
     } catch (error) {
       next(error);
     }
   }
+
+  async controller_getOrderByReference(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+  try {
+    const { reference } = req.params; // ✅ payment reference from route param
+    if (!reference) {
+      res.status(400).json({ message: "Payment reference is required" });
+      return;
+    }
+
+    const result = await this.service.service_getOrderByReference(reference);
+
+    if (!result) {
+      res.status(404).json({ message: "Order not found" });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Order retrieved successfully",
+      order: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+  async controller_updateOrderStatus(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { orderId } = req.params;
+    const { order_status } = req.body;
+
+    if (!orderId || !order_status) {
+      res.status(400).json({ message: "Order ID and order status are required" });
+      return;
+    }
+
+    const result = await this.service.service_updateOrderStatus(orderId, order_status);
+
+    res.status(200).json({
+      message: "Order status updated successfully",
+      order: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+  async controller_deleteOrder(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      res.status(400).json({ message: "Order ID is required" });
+      return;
+    }
+
+    const result = await this.service.service_deleteOrder(orderId);
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+  async controller_getAllOrders(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const result = await this.service.service_getAllOrders();
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async controller_getOrderDetails(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      res.status(400).json({ message: "Order ID is required" });
+      return;
+    }
+
+    const result = await this.service.service_getOrderDetails(orderId);
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
 
 
 

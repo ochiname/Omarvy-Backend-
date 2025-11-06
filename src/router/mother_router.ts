@@ -14,6 +14,6 @@ router.use('/product', productRouter);
 router.use('/cart', CartRouter);
 router.use('/deliveryFee', deliveryRouter);
 router.use('/category', categoryRouter);
-router.use('payment', paymentRouter);
+router.use('/payment', paymentRouter);
 export default router;
 //mypassword123//

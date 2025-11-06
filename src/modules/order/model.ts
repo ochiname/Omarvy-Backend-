@@ -1,140 +1,144 @@
 import { Knex } from 'knex';
 import { knex } from '../../config/dbconnection';
-import { UpdateCart_Item, NewCart_Item, UpdateOrders, NewOrders } from "./interface";
+import { UpdateOrder_Item, NewOrder_Item, UpdateOrders, NewOrders } from "./interface";
 
 export class OrderModel {
   constructor(public db: Knex = knex) {} // default db instance
 
     //////////////////// Create a new Order/////////////////
-    async model_createOrder(order: UpdateOrders): Promise<NewOrders> {
-      const [newOrder] = await this.db<NewOrders>('orders')
+    async model_createOrder(order: UpdateOrders, trx?: Knex.Transaction): Promise<NewOrders> {
+      const query = trx || this.db;
+      const [newOrder] = await query<NewOrders>('orders')
         .insert(order)
         .returning('*');
       return newOrder;
     }
 
     // read order data
-    async model_getOrderByUserId(userId: string): Promise<NewOrders | null> {
-      const order = await this.db<NewOrders>('orders')
+    async model_getOrderByUserId(userId: string, trx?: Knex.Transaction): Promise<NewOrders | null> {
+      const query = trx || this.db;
+      const order = await query<NewOrders>('orders')
         .where({ user_id: userId })
         .first();
       return order || null;
     }
-    
-    async model_getOrderByReference(reference: string): Promise<NewOrders | null> {
-      const order = await this.db<NewOrders>('orders')
+
+    async model_getOrderByReference(reference: string, trx?: Knex.Transaction): Promise<NewOrders | null> {
+      const query = trx || this.db;
+      const order = await query<NewOrders>('orders')
         .where({ payment_reference: reference })
         .first();
       return order || null;
     }
 
-    async model_getOrdersId(id: string): Promise<NewOrders | null> {
-      const order = await this.db<NewOrders>('orders')
+    async model_getOrdersId(id: string, trx?: Knex.Transaction): Promise<NewOrders | null> {
+      const query = trx || this.db;
+      const order = await query<NewOrders>('orders')
           .where({ id })
           .first();
       return order || null;
     }  
 
-    async model_getAllOrders(): Promise<NewOrders[]> {
-      return this.db<NewOrders>('orders')
-      .select('*');
+    async model_getAllOrders(trx?: Knex.Transaction): Promise<NewOrders[]> {
+      const query = trx || this.db;
+      return query<NewOrders>('orders')
+        .select('*');
     }
 
   ////////////////////////// delete order ////////////////////////
 
-  async model_deleteOrderById(id: string): Promise<boolean> {
-    const rowsAffected = await this.db<NewOrders>('orders')
+  async model_deleteOrderById(id: string, trx?: Knex.Transaction): Promise<boolean> {
+    const query = trx || this.db;
+    const rowsAffected = await query<NewOrders>('orders')
       .where({ id })
       .del();
 
     return rowsAffected > 0;
   }
- ///////////////////////// calculate order total ////////////////////////
+    //////////////////// Create a new order Item/////////////////
 
- async model_calculateOrderTotal(orderId: string): Promise<number> {
-  const result = await this.db('cart_items')
-    .where({ cart_id: cartId })
-    .sum<{ total: string | number }>('subtotal as total')
-    .first();
-
-  const total = Number(result?.total) || 0;
-  return total;
-}
-}
-
-export class CartItemModel {
-  constructor(public db: Knex = knex) {} // default db instance
-
-
-
-    //////////////////// Create a new Cart Item/////////////////
-
-    async model_createCartItem(cartItem: UpdateCart_Item): Promise<NewCart_Item> {
-      const { price, quantity } = cartItem;
+    async model_createOrderItem(orderItem: UpdateOrder_Item, trx?: Knex.Transaction): Promise<NewOrder_Item> {
+      const query = trx || this.db;
+      const { price, quantity } = orderItem;
 
       // Calculate subtotal safely (ensure both values exist and are numeric)
       const subtotal = Number(price) * Number(quantity);
 
       // Prepare the final record
-      const cartItemData = {
-        ...cartItem,
+      const orderItemData = {
+        ...orderItem,
         subtotal, // store the computed subtotal
       };
-      const [newCartItem] = await this.db<NewCart_Item>('cart_items')
-        .insert(cartItemData)
+      const [newOrderItem] = await query<NewOrder_Item>('order_items')
+        .insert(orderItemData)
         .returning('*');
-      return newCartItem;
-    } 
+      return newOrderItem;
+    }
 
-    ///////////////////read cart item data by id//////////////////
+    ///////////////////read order item data by id//////////////////
 
-    async model_getCartItemById(id: string): Promise<NewCart_Item | null> {
-      const cartItem = await this.db<NewCart_Item>('cart_items')
+    async model_getOrderItemById(id: string, trx?: Knex.Transaction): Promise<NewOrder_Item | null> {
+      const query = trx || this.db;
+      const orderItem = await query<NewOrder_Item>('order_items')
         .where({ id })
         .first();
-      return cartItem || null;
-    }   
+      return orderItem || null;
+    }
 
-    async model_getAllCartItems(): Promise<NewCart_Item[]> {
-      return this.db<NewCart_Item>('cart_items').select('*');
-    } 
-
-    async model_getCartItemsByCartId(cartId: string): Promise<NewCart_Item[]> {
-      return this.db<NewCart_Item>('cart_items')
-        .where({ cart_id: cartId })
+    async model_getAllOrderItems(trx?: Knex.Transaction): Promise<NewOrder_Item[]> {
+      const query = trx || this.db;
+      return query<NewOrder_Item>('order_items')
         .select('*');
     }
 
-    ///////////////////////// delete cart item ////////////////////////
+    async model_getOrderItemsByOrderId(orderId: string, trx?: Knex.Transaction): Promise<NewOrder_Item[]> {
+      const query = trx || this.db;
+      return query<NewOrder_Item>('order_items')
+        .where({ order_id: orderId })
+        .select('*');
+    }
 
-    async model_deleteCartItemById(id: string): Promise<boolean> {
-      const rowsAffected = await this.db<NewCart_Item>('cart_items')
-        .where({ id })  
+    async model_getOrderItemsByProductId(productId: string, trx?: Knex.Transaction): Promise<NewOrder_Item[]> {
+      const query = trx || this.db;
+      return query<NewOrder_Item>('order_items')
+        .where({ product_id: productId })
+        .select('*');
+    }   
+
+    
+    ///////////////////////// delete order item ////////////////////////
+
+    async model_deleteOrderItemById(id: string, trx?: Knex.Transaction): Promise<boolean> {
+      const query = trx || this.db;
+      const rowsAffected = await query<NewOrder_Item>('order_items')
+        .where({ id })
         .del();
 
     return rowsAffected > 0;
   }
 
-  async model_deleteCartItemsByCartId(cartId: string): Promise<boolean> {
-    const rowsAffected = await this.db<NewCart_Item>('cart_items')
-      .where({ cart_id: cartId })  
-      .del(); 
+  async model_deleteOrderItemsByOrderId(orderId: string, trx?: Knex.Transaction): Promise<boolean> {
+    const query = trx || this.db;
+    const rowsAffected = await query<NewOrder_Item>('order_items')
+      .where({ order_id: orderId })
+      .del();
 
     return rowsAffected > 0;
   }
 
-  /////////////////update cart item quantity ///////////////////////
+  /////////////////update order item quantity ///////////////////////
 
-  async model_updateCartItemQuantity(cart_item_id: string, quantity: number, subtotal: number): Promise<NewCart_Item | null> {
-    const [updatedCartItem] = await this.db<NewCart_Item>('cart_items')
-      .where({ id: cart_item_id })
+  async model_updateOrderItemQuantity(order_item_id: string, quantity: number, subtotal: number, trx?: Knex.Transaction): Promise<NewOrder_Item | null> {
+    const query = trx || this.db;
+    const [updatedOrderItem] = await query<NewOrder_Item>('order_items')
+      .where({ id: order_item_id })
       .update({ quantity, subtotal })
       .returning('*');
-    return updatedCartItem || null;
-  } 
+    return updatedOrderItem || null;
+  }
 
 
-  ///////////////// calculate cart item subtotal ///////////////////////
+  ///////////////// calculate order item subtotal ///////////////////////
 
 
 }

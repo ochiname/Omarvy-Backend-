@@ -58,6 +58,10 @@ export async function up(knex: Knex): Promise<void> {
     table.enu("payment_status", ["pending", "paid", "failed", "refunded"]).defaultTo("pending");
     table.enu("order_status", ["pending", "processing", "shipped", "delivered", "cancelled"]).defaultTo("pending");
     table.string("payment_reference", 255);
+    table.uuid("delivery_fee_id").references("id").inTable("delivery_fee").onDelete("SET NULL"); // when the related delivery fee is deleted, this becomes NULL
+    table.decimal("delivery_fee", 10, 2); // actual delivery fee copied at order time
+    table.string("city", 100); // city name for delivery
+    table.text("delivery_address"); // user address for delivery
     table.timestamps(true, true);
   });
 
